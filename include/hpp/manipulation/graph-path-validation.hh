@@ -44,7 +44,9 @@ namespace hpp {
     using hpp::core::Path;
     using hpp::core::PathPtr_t;
     using hpp::core::PathVector;
+    using hpp::core::PathConstPtr_t;
     using hpp::core::PathVectorPtr_t;
+    using hpp::core::PathVectorConstPtr_t;
 
     /// \addtogroup validation
     /// \{
@@ -71,7 +73,7 @@ namespace hpp {
 	/// \return whether the whole path is valid.
         ///
         /// \notice Call the encapsulated PathValidation::validate.
-	virtual bool validate (const PathPtr_t& path, bool reverse,
+	virtual bool validate (const PathConstPtr_t& path, bool reverse,
 			       PathPtr_t& validPart,
 			       PathValidationReportPtr_t& report);
 
@@ -183,10 +185,10 @@ namespace hpp {
 
       private:
         /// Do validation regarding the constraint graph for PathVector
-        bool impl_validate (const PathVectorPtr_t& path, bool reverse,
+        bool impl_validate (const PathVectorConstPtr_t& path, bool reverse,
             PathPtr_t& validPart, PathValidationReportPtr_t& report);
         /// Do validation regarding the constraint graph for Path 
-        bool impl_validate (const PathPtr_t& path, bool reverse,
+        bool impl_validate (const PathConstPtr_t& path, bool reverse,
             PathPtr_t& validPart, PathValidationReportPtr_t& report);
         /// The encapsulated PathValidation.
         PathValidationPtr_t pathValidation_;
