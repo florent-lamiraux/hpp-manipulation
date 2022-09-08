@@ -27,10 +27,13 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
-#include <hpp/manipulation/path-optimization/discretization.hh>
-#include <hpp/manipulation/problem.hh>
+#include <hpp/core/config-projector.hh>
 #include <hpp/core/interpolated-path.hh>
 #include <hpp/core/path-vector.hh>
+
+#include <hpp/manipulation/constraint-set.hh>
+#include <hpp/manipulation/path-optimization/discretization.hh>
+#include <hpp/manipulation/problem.hh>
 
 namespace hpp{
 namespace manipulation{
@@ -39,6 +42,36 @@ namespace pathOptimization{
   using core::PathVector;
   using core::Parameter;
   using core::ParameterDescription;
+
+namespace internal{
+  // Constraint set that derives from manipulation::ConstraintSet, but that
+  // does not apple the constraints
+  class ConstraintSet : public manipulation::ConstraintSet
+  {
+  public:
+    typedef shared_ptr<ConstraintSet> Ptr_t;
+    static Ptr_t create(const manipulation::ConstraintSetPtr_t& cs)
+    {
+      return Ptr_t(new ConstraintSet(cs));
+    }
+    virtual bool impl_compute(ConfigurationOut_t /*configuration*/)
+    {
+      std::cout << "impl_compute does nothing." << std::endl;
+      // does nothing
+      return true;
+    }
+  protected:
+    ConstraintSet(const manipulation::ConstraintSetPtr_t& cs) :
+      manipulation::ConstraintSet(HPP_DYNAMIC_PTR_CAST
+	  (manipulation::Device, cs->configProjector()->robot()),
+	  cs->name() + std::string(" (fake)"))
+    {
+      // Set edge as the same as input constraint set
+      this->edge(cs->edge());
+    }
+  }; // class ConstraintSet
+
+} // namespace internal
 
   DiscretizationPtr_t Discretization::create
   (const core::ProblemConstPtr_t& problem)
@@ -52,7 +85,6 @@ namespace pathOptimization{
 
   Discretization::Discretization(const ProblemConstPtr_t& problem):
     core::PathOptimizer(problem)
-
   {
   }
 
@@ -67,9 +99,16 @@ namespace pathOptimization{
 
     for (std::size_t i=0; i < path->numberPaths(); ++i){
       core::PathPtr_t p(path->pathAtRank(i));
+      ConstraintSetPtr_t mcs(HPP_DYNAMIC_PTR_CAST(manipulation::ConstraintSet,
+						  p->constraints()));
+      if (!mcs) {
+	throw std::logic_error("hpp::manipulation::Discretization::optimize: "
+			       "ConstraintSet is not of type manipulation::"
+			       "ConstraintSet");
+      }
       core::InterpolatedPathPtr_t discretized = core::InterpolatedPath::create
         (problem()->robot(), p->initial(), p->end(), p->length(),
-         p->constraints());
+         internal::ConstraintSet::create(mcs));
       value_type t = p->timeRange().first + step;
       while (t < p->timeRange().second - 1e-8){
         bool success;
