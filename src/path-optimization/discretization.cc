@@ -50,13 +50,30 @@ namespace internal{
   {
   public:
     typedef shared_ptr<ConstraintSet> Ptr_t;
+    typedef weak_ptr<ConstraintSet> WkPtr_t;
     static Ptr_t create(const manipulation::ConstraintSetPtr_t& cs)
     {
-      return Ptr_t(new ConstraintSet(cs));
+      Ptr_t shPtr(new ConstraintSet(cs));
+      shPtr->init(shPtr);
+      return shPtr;
     }
+
+    /// Return shared pointer to new object
+    static Ptr_t createCopy(const Ptr_t& cs)
+    {
+      Ptr_t shPtr(new ConstraintSet(*cs));
+      shPtr->init(shPtr);
+      return shPtr;
+    }
+
+    /// return shared pointer to copy
+    virtual ConstraintPtr_t copy() const
+    {
+      return createCopy(internal::ConstraintSet::weak_.lock());
+    }
+
     virtual bool impl_compute(ConfigurationOut_t /*configuration*/)
     {
-      std::cout << "impl_compute does nothing." << std::endl;
       // does nothing
       return true;
     }
@@ -69,6 +86,16 @@ namespace internal{
       // Set edge as the same as input constraint set
       this->edge(cs->edge());
     }
+    ConstraintSet(const ConstraintSet& other) :
+      manipulation::ConstraintSet(other)
+    {
+    }
+    void init(WkPtr_t wk)
+    {
+      weak_ = wk;
+    }
+  private:
+    WkPtr_t weak_;
   }; // class ConstraintSet
 
 } // namespace internal
