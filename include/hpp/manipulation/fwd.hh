@@ -144,6 +144,8 @@ typedef std::list<std::string> StringList_t;
 typedef std::vector<std::string> Strings_t;
 
 namespace pathOptimization {
+HPP_PREDEF_CLASS(Discretization);
+typedef shared_ptr<Discretization> DiscretizationPtr_t;
 HPP_PREDEF_CLASS(SmallSteps);
 typedef shared_ptr<SmallSteps> SmallStepsPtr_t;
 HPP_PREDEF_CLASS(Keypoints);

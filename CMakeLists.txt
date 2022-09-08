@@ -87,6 +87,7 @@ SET(${PROJECT_NAME}_HEADERS
   include/hpp/manipulation/graph/helper.hh
   include/hpp/manipulation/graph/validation.hh
 
+  include/hpp/manipulation/path-optimization/discretization.hh
   include/hpp/manipulation/path-optimization/enforce-transition-semantic.hh
   include/hpp/manipulation/path-optimization/random-shortcut.hh
   include/hpp/manipulation/path-optimization/spline-gradient-based.hh
@@ -131,6 +132,7 @@ SET(${PROJECT_NAME}_SOURCES
   src/graph/validation.cc
 
   src/path-optimization/random-shortcut.cc
+  src/path-optimization/discretization.cc
   src/path-optimization/enforce-transition-semantic.cc
 
   src/path-planner/end-effector-trajectory.cc
