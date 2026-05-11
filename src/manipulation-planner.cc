@@ -26,6 +26,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 
+#define HPP_DEBUG
+
 #include "hpp/manipulation/manipulation-planner.hh"
 
 #include <hpp/core/configuration-shooter.hh>
@@ -200,8 +202,6 @@ void recomputeTransition(const core::PathPtr_t& path) {
   if (q0_in_src && q1_in_dst)  // Nominal case
     return;
   hppDout(warning, "Transition "
-          << i
-          << ". "
           "\nsrc="
           << src->name() << "\ndst=" << dst->name()
           << "\nq0_in_src=" << q0_in_src << "\nq1_in_src="
@@ -243,8 +243,6 @@ void recomputeTransition(const core::PathPtr_t& path) {
     }
   }
   hppDout(warning, "Unable to find a suitable transition for "
-          << i
-          << ". "
           "\nsrc="
           << src->name() << "\ndst=" << dst->name()
           << "\nq0_in_src=" << q0_in_src << "\nq1_in_src="
@@ -310,7 +308,6 @@ void ManipulationPlanner::oneStep() {
       HPP_DISPLAY_LAST_TIMECOUNTER(extend);
       // Insert new path to q_near in roadmap
       if (pathIsValid) {
-        recomputeTransition(path);
         value_type t_final = path->timeRange().second;
         if (t_final != path->timeRange().first) {
           bool success;
@@ -330,10 +327,15 @@ void ManipulationPlanner::oneStep() {
   for (const auto& edge : delayedEdges) {
     const core::NodePtr_t& near = std::get<0>(edge);
     Configuration_t q_new = std::get<1>(edge);
-    const core::PathPtr_t& validPath = std::get<2>(edge);
+    const core::PathPtr_t& validPath = std::get<2>(edge)->copy();
     core::NodePtr_t newNode = roadmap()->addNode(q_new);
+    recomputeTransition(validPath);
+    hppDout(info, HPP_DYNAMIC_PTR_CAST(ConstraintSet, validPath->constraints())->edge()->name());
     roadmap()->addEdge(near, newNode, validPath);
-    roadmap()->addEdge(newNode, near, validPath->reverse());
+    PathPtr_t reverse = validPath->reverse()->copy();
+    recomputeTransition(reverse);
+    hppDout(info, HPP_DYNAMIC_PTR_CAST(ConstraintSet, reverse->constraints())->edge()->name());
+    roadmap()->addEdge(newNode, near, reverse);
     newNodes.push_back(newNode);
   }
   HPP_STOP_TIMECOUNTER(delayedEdges);
@@ -522,13 +524,18 @@ inline std::size_t ManipulationPlanner::tryConnectToRoadmap(
                        problem_->pathValidation());
 
         if (path) {
+          path = path->copy();
           nbConnection++;
-          if (!_1to2) roadmap()->addEdge(*itn1, *itn2, path);
+          if (!_1to2) {
+            recomputeTransition(path);
+            hppDout(info, HPP_DYNAMIC_PTR_CAST(ConstraintSet, path->constraints())->edge()->name());
+            roadmap()->addEdge(*itn1, *itn2, path);
+          }
           if (!_2to1) {
-            core::interval_t timeRange = path->timeRange();
-            roadmap()->addEdge(*itn2, *itn1,
-                               path->extract(core::interval_t(
-                                   timeRange.second, timeRange.first)));
+            PathPtr_t reverse = path->reverse()->copy();
+            recomputeTransition(reverse);
+            hppDout(info, HPP_DYNAMIC_PTR_CAST(ConstraintSet, reverse->constraints())->edge()->name());
+            roadmap()->addEdge(*itn2, *itn1, reverse);
           }
           connectSucceed = true;
           break;
@@ -565,13 +572,18 @@ inline std::size_t ManipulationPlanner::tryConnectNewNodes(
       path = connect(q1, q2, s1, s2, graph, pathProjector,
                      problem_->pathValidation());
       if (path) {
+        path = path->copy();
         nbConnection++;
-        if (!_1to2) roadmap()->addEdge(*itn1, *itn2, path);
+        if (!_1to2) {
+          recomputeTransition(path);
+          hppDout(info, HPP_DYNAMIC_PTR_CAST(ConstraintSet, path->constraints())->edge()->name());
+          roadmap()->addEdge(*itn1, *itn2, path);
+        }
         if (!_2to1) {
-          core::interval_t timeRange = path->timeRange();
-          roadmap()->addEdge(*itn2, *itn1,
-                             path->extract(core::interval_t(timeRange.second,
-                                                            timeRange.first)));
+          PathPtr_t reverse = path->reverse()->copy();
+          recomputeTransition(reverse);
+          hppDout(info, HPP_DYNAMIC_PTR_CAST(ConstraintSet, reverse->constraints())->edge()->name());
+          roadmap()->addEdge(*itn2, *itn1, reverse);
         }
       }
     }
